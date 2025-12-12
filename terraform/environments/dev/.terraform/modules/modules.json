@@ -1,1 +1,1 @@
-{"Modules":[{"Key":"","Source":"","Dir":"."},{"Key":"ecr","Source":"../../modules/ecr","Dir":"../../modules/ecr"}]}
+{"Modules":[{"Key":"","Source":"","Dir":"."},{"Key":"alb","Source":"../../modules/alb","Dir":"../../modules/alb"},{"Key":"ecr","Source":"../../modules/ecr","Dir":"../../modules/ecr"},{"Key":"ecs_service","Source":"../../modules/ecs_service","Dir":"../../modules/ecs_service"},{"Key":"ecs_task_definition","Source":"../../modules/ecs_task_definition","Dir":"../../modules/ecs_task_definition"},{"Key":"vpc","Source":"../../modules/vpc","Dir":"../../modules/vpc"}]}

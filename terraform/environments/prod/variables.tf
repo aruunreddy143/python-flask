@@ -4,29 +4,38 @@ variable "aws_region" {
   default     = "us-east-1"
 }
 
-variable "ecr_repository_name" {
-  description = "Name of the ECR repository"
-  type        = string
-  default     = "python-hello-world-prod"
-}
-
 variable "environment" {
   description = "Environment name"
   type        = string
-  default     = "production"
+  default     = "prod"
 }
 
-variable "scan_on_push" {
-  description = "Enable image scanning on push"
-  type        = bool
-  default     = true
+variable "project_name" {
+  description = "Project name"
+  type        = string
+  default     = "python-flask"
 }
 
-variable "common_tags" {
-  description = "Common tags to apply to all resources"
-  type        = map(string)
-  default = {
-    Environment = "production"
-    CostCenter  = "engineering"
-  }
+variable "container_port" {
+  description = "Container port"
+  type        = number
+  default     = 5000
+}
+
+variable "ecs_task_cpu" {
+  description = "ECS task CPU"
+  type        = string
+  default     = "512"
+}
+
+variable "ecs_task_memory" {
+  description = "ECS task memory"
+  type        = string
+  default     = "1024"
+}
+
+variable "ecs_desired_count" {
+  description = "Desired number of ECS tasks"
+  type        = number
+  default     = 2
 }
