@@ -7,7 +7,7 @@ app = FastAPI()
 # API endpoint that returns todos from JSONPlaceholder API
 @app.get("/")
 async def hello():
-    return {"message": "Hello World from Python ECS! with V3"}
+    return {"message": "Hello World from Python ECS! with V4"}
 
 @app.get("/todos")
 async def get_todos():
