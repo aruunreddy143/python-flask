@@ -12,7 +12,7 @@ app.include_router(health_router)
 @app.get("/")
 async def hello():
     logger.info("GET / - Hello endpoint called")
-    return {"message": "Hello World from Python ECS! with V5 - Dev Deployment"}
+    return {"message": "Hello World from Python ECS! with V6 - Dev Deployment"}
 
 if __name__ == "__main__":
     import uvicorn
