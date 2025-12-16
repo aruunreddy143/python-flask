@@ -70,13 +70,24 @@ jobs:
 
       - name: Output image URI
         id: image
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          IMAGE_TAG: ${{ github.sha }}
         run: |
+          # Get ECR registry from login
+          ECR_REGISTRY=${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG=${{ github.sha }}
+          
+          if [ -z "$ECR_REGISTRY" ]; then
+            echo "ERROR: ECR_REGISTRY is empty, using alternative method"
+            AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+            ECR_REGISTRY="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+          fi
+          
           IMAGE_URI="${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
+          
           echo "image=${IMAGE_URI}" >> $GITHUB_OUTPUT
-          echo "Exported image: ${IMAGE_URI}"
+          echo "Registry: ${ECR_REGISTRY}"
+          echo "Repository: ${ECR_REPOSITORY}"
+          echo "Tag: ${IMAGE_TAG}"
+          echo "Full Image URI: ${IMAGE_URI}"
 
   deploy-dev:
     needs: build-and-push
