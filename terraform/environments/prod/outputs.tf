@@ -15,20 +15,20 @@ output "ecs_service_name" {
 
 output "ecr_repository_url" {
   description = "ECR repository URL"
-  value       = data.aws_ecr_repository.flask_app.repository_url
+  value       = aws_ecr_repository.flask_app.repository_url
 }
 
 output "ecr_repository_arn" {
   description = "The ARN of the ECR repository"
-  value       = data.aws_ecr_repository.flask_app.arn
+  value       = aws_ecr_repository.flask_app.arn
 }
 
 output "ecr_registry_id" {
   description = "The registry ID (AWS Account ID)"
-  value       = data.aws_ecr_repository.flask_app.registry_id
+  value       = aws_ecr_repository.flask_app.registry_id
 }
 
 output "ecr_repository_name" {
   description = "The name of the ECR repository"
-  value       = data.aws_ecr_repository.flask_app.name
+  value       = aws_ecr_repository.flask_app.name
 }

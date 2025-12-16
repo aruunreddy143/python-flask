@@ -28,9 +28,19 @@ provider "aws" {
   }
 }
 
-# Data source to get ECR repository
-data "aws_ecr_repository" "flask_app" {
-  name = var.project_name
+# ECR Repository for Flask App
+resource "aws_ecr_repository" "flask_app" {
+  name                 = var.project_name
+  image_tag_mutability = "MUTABLE"
+
+  image_scanning_configuration {
+    scan_on_push = true
+  }
+
+  tags = {
+    Name        = "${var.project_name}-ecr"
+    Environment = var.environment
+  }
 }
 
 # VPC Module
@@ -75,7 +85,7 @@ module "ecs_task_definition" {
 
   family              = "${var.project_name}-${var.environment}"
   container_name      = var.project_name
-  ecr_repository_url  = data.aws_ecr_repository.flask_app.repository_url
+  ecr_repository_url  = aws_ecr_repository.flask_app.repository_url
   image_tag           = "latest"
   container_port      = var.container_port
   cpu                 = var.ecs_task_cpu
