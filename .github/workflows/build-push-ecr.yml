@@ -115,7 +115,15 @@ jobs:
           AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
           IMAGE_URI="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:${{ github.sha }}"
           
-          echo "Deploying image: ${IMAGE_URI}"
+          echo "=========================================="
+          echo "Deploying to Dev Environment"
+          echo "=========================================="
+          echo "Image URI: ${IMAGE_URI}"
+          echo "Cluster: ${{ env.CLUSTER_NAME_DEV }}"
+          echo "Service: ${{ env.SERVICE_NAME_DEV }}"
+          echo "Task Family: ${{ env.TASK_FAMILY_DEV }}"
+          echo "Region: ${{ env.AWS_REGION }}"
+          echo "=========================================="
           
           # Get the latest task definition
           TASK_DEF=$(aws ecs describe-task-definition --task-definition ${{ env.TASK_FAMILY_DEV }} --region ${{ env.AWS_REGION }} --query 'taskDefinition' --output json)
@@ -129,10 +137,22 @@ jobs:
           # Register the new task definition
           NEW_TASK_DEF_ARN=$(aws ecs register-task-definition --cli-input-json file:///tmp/task-def.json --region ${{ env.AWS_REGION }} --query 'taskDefinition.taskDefinitionArn' --output text)
           
+          echo "New Task Definition: ${NEW_TASK_DEF_ARN}"
+          
           # Update the service
-          aws ecs update-service --cluster ${{ env.CLUSTER_NAME_DEV }} --service ${{ env.SERVICE_NAME_DEV }} --task-definition ${NEW_TASK_DEF_ARN} --region ${{ env.AWS_REGION }}
-
-          echo "Deployment to Dev complete. Task Definition: ${NEW_TASK_DEF_ARN}"
+          UPDATE_RESULT=$(aws ecs update-service --cluster ${{ env.CLUSTER_NAME_DEV }} --service ${{ env.SERVICE_NAME_DEV }} --task-definition ${NEW_TASK_DEF_ARN} --region ${{ env.AWS_REGION }} --output json)
+          
+          echo "Service Update Status: $(echo $UPDATE_RESULT | jq -r '.service.status')"
+          echo "Service Name: $(echo $UPDATE_RESULT | jq -r '.service.serviceName')"
+          echo "Running Count: $(echo $UPDATE_RESULT | jq -r '.service.runningCount')"
+          echo "Desired Count: $(echo $UPDATE_RESULT | jq -r '.service.desiredCount')"
+          
+          echo "=========================================="
+          echo "Deployment to Dev Complete!"
+          echo "=========================================="
+          echo "Task Definition: ${NEW_TASK_DEF_ARN}"
+          echo "Timestamp: $(date -u +'%Y-%m-%d %H:%M:%S UTC')"
+          echo "=========================================="
 
   deploy-prod:
     needs: build-and-push
@@ -164,7 +184,15 @@ jobs:
           AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
           IMAGE_URI="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:${{ github.sha }}"
           
-          echo "Deploying image: ${IMAGE_URI}"
+          echo "=========================================="
+          echo "Deploying to Prod Environment"
+          echo "=========================================="
+          echo "Image URI: ${IMAGE_URI}"
+          echo "Cluster: ${{ env.CLUSTER_NAME_PROD }}"
+          echo "Service: ${{ env.SERVICE_NAME_PROD }}"
+          echo "Task Family: ${{ env.TASK_FAMILY_PROD }}"
+          echo "Region: ${{ env.AWS_REGION }}"
+          echo "=========================================="
           
           # Get the latest task definition
           TASK_DEF=$(aws ecs describe-task-definition --task-definition ${{ env.TASK_FAMILY_PROD }} --region ${{ env.AWS_REGION }} --query 'taskDefinition' --output json)
@@ -178,10 +206,22 @@ jobs:
           # Register the new task definition
           NEW_TASK_DEF_ARN=$(aws ecs register-task-definition --cli-input-json file:///tmp/task-def.json --region ${{ env.AWS_REGION }} --query 'taskDefinition.taskDefinitionArn' --output text)
           
+          echo "New Task Definition: ${NEW_TASK_DEF_ARN}"
+          
           # Update the service
-          aws ecs update-service --cluster ${{ env.CLUSTER_NAME_PROD }} --service ${{ env.SERVICE_NAME_PROD }} --task-definition ${NEW_TASK_DEF_ARN} --region ${{ env.AWS_REGION }} --force-new-deployment
-
-          echo "Deployment to Prod complete. Task Definition: ${NEW_TASK_DEF_ARN}"
+          UPDATE_RESULT=$(aws ecs update-service --cluster ${{ env.CLUSTER_NAME_PROD }} --service ${{ env.SERVICE_NAME_PROD }} --task-definition ${NEW_TASK_DEF_ARN} --region ${{ env.AWS_REGION }} --force-new-deployment --output json)
+          
+          echo "Service Update Status: $(echo $UPDATE_RESULT | jq -r '.service.status')"
+          echo "Service Name: $(echo $UPDATE_RESULT | jq -r '.service.serviceName')"
+          echo "Running Count: $(echo $UPDATE_RESULT | jq -r '.service.runningCount')"
+          echo "Desired Count: $(echo $UPDATE_RESULT | jq -r '.service.desiredCount')"
+          
+          echo "=========================================="
+          echo "Deployment to Prod Complete!"
+          echo "=========================================="
+          echo "Task Definition: ${NEW_TASK_DEF_ARN}"
+          echo "Timestamp: $(date -u +'%Y-%m-%d %H:%M:%S UTC')"
+          echo "=========================================="
 
       - name: Wait for deployment
         run: |
