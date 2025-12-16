@@ -30,6 +30,7 @@ jobs:
 
     outputs:
       image: ${{ steps.image.outputs.image }}
+      registry: ${{ steps.login-ecr.outputs.registry }}
 
     steps:
       - name: Checkout code
@@ -73,11 +74,9 @@ jobs:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          IMAGE_URI="$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
-          echo "image=$IMAGE_URI" >> $GITHUB_OUTPUT
-          echo "Image URI: $IMAGE_URI"
-          echo "Latest Image URI: $ECR_REGISTRY/$ECR_REPOSITORY:latest"
-          echo "DEBUG: Image output is: $IMAGE_URI"
+          IMAGE_URI="${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
+          echo "image=${IMAGE_URI}" >> $GITHUB_OUTPUT
+          echo "Exported image: ${IMAGE_URI}"
 
   deploy-dev:
     needs: build-and-push
@@ -87,6 +86,9 @@ jobs:
     permissions:
       id-token: write
       contents: read
+    
+    env:
+      IMAGE_URI: ${{ needs.build-and-push.outputs.image }}
 
     steps:
       - name: Checkout code
@@ -101,25 +103,26 @@ jobs:
 
       - name: Deploy to ECS (Dev)
         run: |
-          echo "DEBUG: Image to deploy: ${{ needs.build-and-push.outputs.image }}"
+          echo "Deploying image: ${IMAGE_URI}"
+          
+          if [ -z "${IMAGE_URI}" ]; then
+            echo "ERROR: IMAGE_URI is empty"
+            exit 1
+          fi
           
           # Get the latest task definition
           TASK_DEF=$(aws ecs describe-task-definition --task-definition ${{ env.TASK_FAMILY_DEV }} --region ${{ env.AWS_REGION }} --query 'taskDefinition' --output json)
           
           # Update the image in the task definition
-          NEW_TASK_DEF=$(echo $TASK_DEF | jq --arg IMAGE "${{ needs.build-and-push.outputs.image }}" '.containerDefinitions[0].image = $IMAGE | del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)')
-          
-          # Verify the image was set
-          echo "DEBUG: New task definition image:"
-          echo $NEW_TASK_DEF | jq '.containerDefinitions[0].image'
+          NEW_TASK_DEF=$(echo "${TASK_DEF}" | jq --arg IMAGE "${IMAGE_URI}" '.containerDefinitions[0].image = $IMAGE | del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)')
           
           # Register the new task definition
-          NEW_TASK_DEF_ARN=$(aws ecs register-task-definition --cli-input-json "$(echo $NEW_TASK_DEF | jq -c .)" --region ${{ env.AWS_REGION }} --query 'taskDefinition.taskDefinitionArn' --output text)
+          NEW_TASK_DEF_ARN=$(echo "${NEW_TASK_DEF}" | aws ecs register-task-definition --cli-input-json file:///dev/stdin --region ${{ env.AWS_REGION }} --query 'taskDefinition.taskDefinitionArn' --output text)
           
           # Update the service
-          aws ecs update-service --cluster ${{ env.CLUSTER_NAME_DEV }} --service ${{ env.SERVICE_NAME_DEV }} --task-definition $NEW_TASK_DEF_ARN --region ${{ env.AWS_REGION }}
+          aws ecs update-service --cluster ${{ env.CLUSTER_NAME_DEV }} --service ${{ env.SERVICE_NAME_DEV }} --task-definition ${NEW_TASK_DEF_ARN} --region ${{ env.AWS_REGION }}
 
-          echo "Deployment to Dev complete. Task Definition: $NEW_TASK_DEF_ARN"
+          echo "Deployment to Dev complete. Task Definition: ${NEW_TASK_DEF_ARN}"
 
   deploy-prod:
     needs: build-and-push
@@ -133,6 +136,9 @@ jobs:
     environment:
       name: production
       url: https://${{ steps.alb.outputs.dns_name }}
+    
+    env:
+      IMAGE_URI: ${{ needs.build-and-push.outputs.image }}
 
     steps:
       - name: Checkout code
@@ -147,25 +153,26 @@ jobs:
 
       - name: Deploy to ECS (Prod)
         run: |
-          echo "DEBUG: Image to deploy: ${{ needs.build-and-push.outputs.image }}"
+          echo "Deploying image: ${IMAGE_URI}"
+          
+          if [ -z "${IMAGE_URI}" ]; then
+            echo "ERROR: IMAGE_URI is empty"
+            exit 1
+          fi
           
           # Get the latest task definition
           TASK_DEF=$(aws ecs describe-task-definition --task-definition ${{ env.TASK_FAMILY_PROD }} --region ${{ env.AWS_REGION }} --query 'taskDefinition' --output json)
           
           # Update the image in the task definition
-          NEW_TASK_DEF=$(echo $TASK_DEF | jq --arg IMAGE "${{ needs.build-and-push.outputs.image }}" '.containerDefinitions[0].image = $IMAGE | del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)')
-          
-          # Verify the image was set
-          echo "DEBUG: New task definition image:"
-          echo $NEW_TASK_DEF | jq '.containerDefinitions[0].image'
+          NEW_TASK_DEF=$(echo "${TASK_DEF}" | jq --arg IMAGE "${IMAGE_URI}" '.containerDefinitions[0].image = $IMAGE | del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)')
           
           # Register the new task definition
-          NEW_TASK_DEF_ARN=$(aws ecs register-task-definition --cli-input-json "$(echo $NEW_TASK_DEF | jq -c .)" --region ${{ env.AWS_REGION }} --query 'taskDefinition.taskDefinitionArn' --output text)
+          NEW_TASK_DEF_ARN=$(echo "${NEW_TASK_DEF}" | aws ecs register-task-definition --cli-input-json file:///dev/stdin --region ${{ env.AWS_REGION }} --query 'taskDefinition.taskDefinitionArn' --output text)
           
           # Update the service
-          aws ecs update-service --cluster ${{ env.CLUSTER_NAME_PROD }} --service ${{ env.SERVICE_NAME_PROD }} --task-definition $NEW_TASK_DEF_ARN --region ${{ env.AWS_REGION }} --force-new-deployment
+          aws ecs update-service --cluster ${{ env.CLUSTER_NAME_PROD }} --service ${{ env.SERVICE_NAME_PROD }} --task-definition ${NEW_TASK_DEF_ARN} --region ${{ env.AWS_REGION }} --force-new-deployment
 
-          echo "Deployment to Prod complete. Task Definition: $NEW_TASK_DEF_ARN"
+          echo "Deployment to Prod complete. Task Definition: ${NEW_TASK_DEF_ARN}"
 
       - name: Wait for deployment
         run: |
