@@ -12,7 +12,10 @@ RUN /app/venv/bin/pip install --no-cache-dir --upgrade pip
 COPY requirements.txt .
 RUN /app/venv/bin/pip install --no-cache-dir -r requirements.txt
 
+# Copy all application files
 COPY app.py .
+COPY config/ ./config/
+COPY routes/ ./routes/
 
 EXPOSE 5000
 

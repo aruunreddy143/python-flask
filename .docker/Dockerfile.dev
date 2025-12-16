@@ -15,7 +15,10 @@ RUN /app/venv/bin/pip install --no-cache-dir -r requirements.txt
 # Install development tools
 RUN /app/venv/bin/pip install --no-cache-dir pytest pytest-asyncio black flake8
 
+# Copy all application files
 COPY app.py .
+COPY config/ ./config/
+COPY routes/ ./routes/
 
 EXPOSE 5000
 
