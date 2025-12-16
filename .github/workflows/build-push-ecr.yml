@@ -97,9 +97,6 @@ jobs:
     permissions:
       id-token: write
       contents: read
-    
-    env:
-      IMAGE_URI: ${{ needs.build-and-push.outputs.image }}
 
     steps:
       - name: Checkout code
@@ -114,12 +111,11 @@ jobs:
 
       - name: Deploy to ECS (Dev)
         run: |
-          echo "Deploying image: ${IMAGE_URI}"
+          # Construct image URI
+          AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          IMAGE_URI="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:${{ github.sha }}"
           
-          if [ -z "${IMAGE_URI}" ]; then
-            echo "ERROR: IMAGE_URI is empty"
-            exit 1
-          fi
+          echo "Deploying image: ${IMAGE_URI}"
           
           # Get the latest task definition
           TASK_DEF=$(aws ecs describe-task-definition --task-definition ${{ env.TASK_FAMILY_DEV }} --region ${{ env.AWS_REGION }} --query 'taskDefinition' --output json)
@@ -147,9 +143,6 @@ jobs:
     environment:
       name: production
       url: https://${{ steps.alb.outputs.dns_name }}
-    
-    env:
-      IMAGE_URI: ${{ needs.build-and-push.outputs.image }}
 
     steps:
       - name: Checkout code
@@ -164,12 +157,11 @@ jobs:
 
       - name: Deploy to ECS (Prod)
         run: |
-          echo "Deploying image: ${IMAGE_URI}"
+          # Construct image URI
+          AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          IMAGE_URI="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:${{ github.sha }}"
           
-          if [ -z "${IMAGE_URI}" ]; then
-            echo "ERROR: IMAGE_URI is empty"
-            exit 1
-          fi
+          echo "Deploying image: ${IMAGE_URI}"
           
           # Get the latest task definition
           TASK_DEF=$(aws ecs describe-task-definition --task-definition ${{ env.TASK_FAMILY_PROD }} --region ${{ env.AWS_REGION }} --query 'taskDefinition' --output json)
